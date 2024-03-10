@@ -1,0 +1,16 @@
+name: ggcode-example-store
+actions:
+- name: run/generate-compose
+  path: run/generate-compose.luau
+- name: run/generate-spring
+  path: run/generate-spring.luau
+repositories:
+- name: central
+  uri: git@github.com:ntr1x/ggcode-repo-central.git
+- name: compose
+  uri: git@github.com:ntr1x/ggcode-repo-compose.git
+- name: spring
+  uri: git@github.com:ntr1x/ggcode-repo-spring.git
+targets:
+- name: '@'
+  path: ''
