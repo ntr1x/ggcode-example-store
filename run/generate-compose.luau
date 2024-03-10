@@ -2,7 +2,7 @@ local ggcode = require("ggcode")
 local route = require("compose/haproxy/route")
 
 ggcode.generate "compose/compose" {
-    target = '@',
+    target = '@app',
     variables = {
         config = {
             include = {
@@ -18,7 +18,7 @@ ggcode.generate "compose/compose" {
 }
 
 ggcode.generate "compose/haproxy" {
-    target = '@',
+    target = '@app',
     variables = {
         routes = {
             route.route('env_kafka_ui', 'http://kafka-ui.local.example.com') {
@@ -40,13 +40,13 @@ ggcode.generate "compose/haproxy" {
     }
 }
 
-ggcode.generate "compose/kafka" { target = '@' }
-ggcode.generate "compose/kafka_ui" { target = '@' }
-ggcode.generate "compose/pgadmin" { target = '@' }
-ggcode.generate "compose/postgres" { target = '@' }
+ggcode.generate "compose/kafka" { target = '@app' }
+ggcode.generate "compose/kafka_ui" { target = '@app' }
+ggcode.generate "compose/pgadmin" { target = '@app' }
+ggcode.generate "compose/postgres" { target = '@app' }
 
 ggcode.generate "compose/swagger_ui" {
-    target = '@',
+    target = '@app',
     variables = {
         config = {
             urls = {

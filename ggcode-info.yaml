@@ -12,5 +12,5 @@ repositories:
 - name: spring
   uri: git@github.com:ntr1x/ggcode-repo-spring.git
 targets:
-- name: '@'
-  path: ''
+- name: '@app'
+  path: 'app'
