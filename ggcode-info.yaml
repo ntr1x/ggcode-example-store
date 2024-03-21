@@ -1,4 +1,4 @@
-name: ggcode-example-store
+name: example-store
 actions:
 - name: generate-compose
   path: actions/generate-compose.luau
