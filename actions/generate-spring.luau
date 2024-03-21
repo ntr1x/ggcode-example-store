@@ -1,4 +1,4 @@
-local ggcode = require('ggcode')
+local ggcode = require('core/ggcode')
 local Project = require('spring/project')
 local Module = require('spring/module')
 local Profile = require('spring/profile')

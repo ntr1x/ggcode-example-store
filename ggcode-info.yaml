@@ -5,8 +5,8 @@ actions:
 - name: generate-spring
   path: actions/generate-spring.luau
 repositories:
-- name: central
-  uri: git@github.com:ntr1x/ggcode-repo-central.git
+- name: core
+  uri: git@github.com:ntr1x/ggcode-repo-core.git
 - name: compose
   uri: git@github.com:ntr1x/ggcode-repo-compose.git
 - name: spring
