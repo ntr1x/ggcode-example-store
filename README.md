@@ -40,6 +40,9 @@ git clone https://github.com/ntr1x/ggcode-example-store
 # Go to the project root directory
 cd ggcode-example-store
 
+# Go to the project root directory
+ggcode install
+
 # Generate compose manifests
 ggcode run @/run/generate-compose
 
