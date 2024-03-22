@@ -44,10 +44,10 @@ cd ggcode-example-store
 ggcode install
 
 # Generate compose manifests
-ggcode run @/run/generate-compose
+ggcode run @/generate-compose
 
 # Generate spring boot applicaiton
-ggcode run @/run/generate-spring
+ggcode run @/generate-spring
 ```
 
 ### Launching
