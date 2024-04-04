@@ -3,6 +3,7 @@ local haproxy = require('compose/haproxy')
 local postgres = require('compose/postgres')
 local pgadmin = require('compose/pgadmin')
 local keycloak = require('compose/keycloak')
+local kcadm = require('compose/kcadm')
 
 local datasource_keycloak = {
     uri = 'jdbc:postgresql://env_postgres:5432/keycloak',
@@ -28,6 +29,7 @@ ggcode.generate "compose/compose" {
                 { path = "compose/env/env_postgres.compose.yaml" },
                 { path = "compose/env/env_swagger_ui.compose.yaml" },
                 { path = "compose/env/env_keycloak.compose.yaml" },
+                { path = "compose/env/env_kcadm.compose.yaml" },
             }
         }
     }
@@ -83,6 +85,35 @@ ggcode.generate "compose/keycloak" {
     target = '@app',
     variables = keycloak.build {
         keycloak.Manifest:new():with_datasource(datasource_keycloak)
+    }
+}
+
+ggcode.generate "compose/kcadm" {
+    target = '@app',
+    variables = kcadm.build {
+        kcadm.Realm:from('application'),
+
+        kcadm.Client:from('api', '4Ggxc50xzu5j1qFk5rZ4OPHwvNFXLpNX'),
+
+        kcadm.Role:realm('admin'),
+        kcadm.Role:realm('support'),
+
+        kcadm.Group:from('admin'),
+        kcadm.Group:from('support'),
+
+        kcadm.User:from_credentials('admin@example.com', 'Qwerty123'),
+        kcadm.User:from_credentials('support01@example.com', 'Qwerty123'),
+        kcadm.User:from_credentials('support02@example.com', 'Qwerty123'),
+        kcadm.User:from_credentials('user01@example.com', 'Qwerty123'),
+        kcadm.User:from_credentials('user02@example.com', 'Qwerty123'),
+
+        kcadm.Member:from('admin', 'admin'),
+        kcadm.Member:from('support01', 'support'),
+        kcadm.Member:from('support02', 'support'),
+
+        kcadm.Grant:from('group:admin', 'realm:admin'),
+        kcadm.Grant:from('group:admin', 'realm:support'),
+        kcadm.Grant:from('group:support', 'realm:support'),
     }
 }
 

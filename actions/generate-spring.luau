@@ -1,13 +1,20 @@
 local ggcode = require('core/ggcode')
-local Project = require('spring/project')
-local Module = require('spring/module')
-local Profile = require('spring/profile')
-local Unit = require('spring/unit')
-local pk = require('spring/jpa/pk')
-local prop = require('spring/jpa/prop')
-local ref = require('spring/jpa/ref')
+local POM = require('spring/POM')
+local Project = require('spring/Project')
+local Module = require('spring/Module')
+local Profile = require('spring/Profile')
+local Unit = require('spring/Unit')
+local Projection = require('spring/Projection')
+local Resource = require('spring/Resource')
+local Entity = require('spring/jpa/Entity')
+local Table = require('spring/jpa/Table')
+local PK = require('spring/jpa/PK')
+local Prop = require('spring/jpa/Prop')
+local Ref = require('spring/jpa/Ref')
+local Action = require('spring/security/Action')
+local Auth = require('spring/security/Auth')
 
-local project = Project:from('store', 'com.example', 'application', {
+local pom = POM:from('com.example', 'application', {
     "common_api",
     "common_web",
     "service_catalog",
@@ -16,7 +23,7 @@ local project = Project:from('store', 'com.example', 'application', {
     "service_payments",
 })
 
-ggcode.generate "spring/project" { target = '@app', variables = project }
+local project = Project:from('store', pom)
 
 local profile_local = Profile:new()
     :with_port(8080)
@@ -38,205 +45,420 @@ local service_payments = Module
     :from(project, 'service_payments')
     :with_profile('local', profile_local:copy():with_port(8083))
 
-ggcode.generate "spring/module_web" { target = '@app', variables = service_catalog }
-ggcode.generate "spring/module_web" { target = '@app', variables = service_customers }
-ggcode.generate "spring/module_web" { target = '@app', variables = service_basket }
-ggcode.generate "spring/module_web" { target = '@app', variables = service_payments }
-
 local unit_category = Unit:from(service_catalog, "category")
 local unit_product = Unit:from(service_catalog, "product")
 
-unit_category:entity "public.category" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.text 'description',
-}
+local unit_category = Unit
+    :from(service_catalog, "public.category")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:text 'name',
+        Prop:text 'description',
+    }
 
-unit_product:entity "public.product" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.text 'description',
-    prop.decimal 'price',
-    prop.uuid 'category_id',
-    ref.one 'category' {
-        column = 'category_id',
-        unit = unit_category
-    },
-}
+local unit_product = Unit
+    :from(service_catalog, "public.product")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:text 'name',
+        Prop:text 'description',
+        Prop:decimal 'price',
+        Prop:uuid 'category_id',
+        Ref:new {
+            name = 'category',
+            column = 'category_id',
+            unit = unit_category,
+        },
+    }
 
-ggcode.generate "spring/unit" { target = '@app', variables = unit_category }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_product }
+local unit_customer = Unit
+    :from(service_customers, "public.customer")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:text 'email',
+        Prop:text 'phone',
+        Prop:text 'name',
+    }
 
-local unit_customer = Unit:from(service_customers, "customer")
+    local unit_basket_customer_ref = Unit
+    :from(service_basket, "public.customer")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:text 'email',
+        Prop:text 'phone',
+        Prop:text 'name',
+    }
 
-unit_customer:entity "public.customer" {
-    pk.uuid 'id',
-    prop.text 'email',
-    prop.text 'phone',
-    prop.text 'name',
-}
+local unit_basket_product_ref = Unit
+    :from(service_basket, "public.product")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:text 'name',
+        Prop:decimal 'price',
+    }
 
-ggcode.generate "spring/unit" { target = '@app', variables = unit_customer }
+local unit_basket_entry = Unit
+    :from(service_basket, "public.basket_entry")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:uuid 'customer_id',
+        Prop:uuid 'product_id',
+        Prop:int 'quantity',
+        Ref:new {
+            name = 'customer',
+            column = 'customer_id',
+            unit = unit_basket_customer_ref
+        },
+        Ref:new {
+            name = 'product',
+            column = 'product_id',
+            unit = unit_basket_product_ref
+        },
+    }
 
-local unit_basket_entry = Unit:from(service_basket, "basket_entry")
-local unit_favorite = Unit:from(service_basket, "favorite")
-local unit_basket_customer_ref = Unit:from(service_basket, "customer")
-local unit_basket_product_ref = Unit:from(service_basket, "product")
+local unit_favorite = Unit
+    :from(service_basket, "public.favorite")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:uuid 'customer_id',
+        Prop:uuid 'product_id',
+        Ref:new {
+            name = 'customer',
+            column = 'customer_id',
+            unit = unit_basket_customer_ref
+        },
+        Ref:new {
+            name = 'product',
+            column = 'product_id',
+            unit = unit_basket_product_ref
+        },
+    }
 
-unit_basket_entry:entity "public.basket_entry" {
-    pk.uuid 'id',
-    prop.uuid 'customer_id',
-    prop.uuid 'product_id',
-    prop.int 'quantity',
-    ref.one 'customer' {
-        column = 'customer_id',
-        unit = unit_basket_customer_ref
-    },
-    ref.one 'product' {
-        column = 'product_id',
-        unit = unit_basket_product_ref
-    },
-}
+local unit_order = Unit:from(service_payments, "public.order")
+local unit_order_type = Unit:from(service_payments, "public.order_type")
+local unit_order_entry = Unit:from(service_payments, "public.order_entry")
+local unit_order_status = Unit:from(service_payments, "public.order_status")
+local unit_payment = Unit:from(service_payments, "public.payment")
+local unit_payment_type = Unit:from(service_payments, "public.payment_type")
+local unit_payment_status = Unit:from(service_payments, "public.payment_status")
+local unit_payment_customer_ref = Unit:from(service_payments, "public.customer")
+local unit_payment_product_ref = Unit:from(service_payments, "public.product")
 
-unit_favorite:entity "public.favorite" {
-    pk.uuid 'id',
-    prop.uuid 'customer_id',
-    prop.uuid 'product_id',
-    ref.one 'customer' {
-        column = 'customer_id',
-        unit = unit_basket_customer_ref
-    },
-    ref.one 'product' {
-        column = 'product_id',
-        unit = unit_basket_product_ref
-    },
-}
-
-unit_basket_customer_ref:entity "public.customer" {
-    pk.uuid 'id',
-    prop.text 'email',
-    prop.text 'phone',
-    prop.text 'name',
-}
-
-unit_basket_product_ref:entity "public.product" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.decimal 'price',
-}
-
-ggcode.generate "spring/unit" { target = '@app', variables = unit_basket_entry }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_favorite }
-ggcode.generate "spring/unit_ref" { target = '@app', variables = unit_basket_customer_ref }
-ggcode.generate "spring/unit_ref" { target = '@app', variables = unit_basket_product_ref }
-
-local unit_order = Unit:from(service_payments, "order")
-local unit_order_type = Unit:from(service_payments, "order_type")
-local unit_order_entry = Unit:from(service_payments, "order_entry")
-local unit_order_status = Unit:from(service_payments, "order_status")
-local unit_payment = Unit:from(service_payments, "payment")
-local unit_payment_type = Unit:from(service_payments, "payment_type")
-local unit_payment_status = Unit:from(service_payments, "payment_status")
-local unit_payment_customer_ref = Unit:from(service_payments, "customer")
-local unit_payment_product_ref = Unit:from(service_payments, "product")
-
-unit_order:entity "public.order" {
-    pk.uuid 'id',
-    prop.uuid 'customer_id',
-    prop.int 'order_type_id',
-    prop.int 'order_status_id',
-    prop.datetime 'created_at',
-    prop.datetime 'updated_at',
-    ref.one 'customer' {
+unit_order:with_columns {
+    PK:uuid 'id',
+    Prop:uuid 'customer_id',
+    Prop:int 'order_type_id',
+    Prop:int 'order_status_id',
+    Prop:datetime 'created_at',
+    Prop:datetime 'updated_at',
+    Ref:new {
+        name = 'customer',
         column = 'customer_id',
         unit = unit_payment_customer_ref
     },
-    ref.one 'order_type' {
+    Ref:new {
+        name = 'order_type',
         column = 'order_type_id',
         unit = unit_order_type
     },
-    ref.one 'order_status' {
+    Ref:new {
+        name = 'order_status',
         column = 'order_status_id',
         unit = unit_order_status
     },
 }
 
-unit_order_type:entity "public.order_type" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.text 'description',
+unit_order_type:with_columns {
+    PK:uuid 'id',
+    Prop:text 'name',
+    Prop:text 'description',
 }
 
-unit_order_entry:entity "public.order_entry" {
-    pk.uuid 'id',
-    prop.uuid 'product_id',
-    prop.uuid 'order_id',
-    prop.int 'quantity',
-    ref.one 'order' {
+unit_order_entry:with_columns {
+    PK:uuid 'id',
+    Prop:uuid 'product_id',
+    Prop:uuid 'order_id',
+    Prop:int 'quantity',
+    Ref:new {
+        name = 'order',
         column = 'order_id',
         unit = unit_order
     },
-    ref.one 'product' {
+    Ref:new {
+        name = 'product',
         column = 'product_id',
         unit = unit_payment_product_ref
     },
 }
 
-unit_order_status:entity "public.order_status" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.text 'description',
+unit_order_status:with_columns {
+    PK:uuid 'id',
+    Prop:text 'name',
+    Prop:text 'description',
 }
 
-unit_payment:entity "public.payment" {
-    pk.uuid 'id',
-    prop.uuid 'order_id',
-    prop.uuid 'payment_status_id',
-    prop.uuid 'payment_type_id',
-    prop.decimal 'value',
-    prop.datetime 'created_at',
-    prop.datetime 'updated_at',
-    ref.one 'payment_status' {
+unit_payment:with_columns {
+    PK:uuid 'id',
+    Prop:uuid 'order_id',
+    Prop:uuid 'payment_status_id',
+    Prop:uuid 'payment_type_id',
+    Prop:decimal 'value',
+    Prop:datetime 'created_at',
+    Prop:datetime 'updated_at',
+    Ref:new {
+        name = 'payment_status',
         column = 'payment_status_id',
         unit = unit_payment_status
     },
-    ref.one 'payment_type' {
+    Ref:new {
+        name = 'payment_type',
         column = 'payment_type_id',
         unit = unit_payment_type
     },
 }
 
-unit_payment_type:entity "public.payment_type" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.text 'description',
+unit_payment_type:with_columns {
+    PK:uuid 'id',
+    Prop:text 'name',
+    Prop:text 'description',
 }
 
-unit_payment_status:entity "public.payment_status" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.text 'description',
+unit_payment_status:with_columns {
+    PK:uuid 'id',
+    Prop:text 'name',
+    Prop:text 'description',
 }
 
-unit_payment_customer_ref:entity "public.customer" {
-    pk.uuid 'id',
-    prop.text 'email',
-    prop.text 'phone',
-    prop.text 'name',
+unit_payment_customer_ref:with_columns {
+    PK:uuid 'id',
+    Prop:text 'email',
+    Prop:text 'phone',
+    Prop:text 'name',
 }
 
-unit_payment_product_ref:entity "public.product" {
-    pk.uuid 'id',
-    prop.text 'name',
-    prop.decimal 'price',
+unit_payment_product_ref:with_columns {
+    PK:uuid 'id',
+    Prop:text 'name',
+    Prop:decimal 'price',
 }
 
-ggcode.generate "spring/unit" { target = '@app', variables = unit_order }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_order_type }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_order_entry }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_order_status }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_payment }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_type }
-ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_status }
-ggcode.generate "spring/unit_ref" { target = '@app', variables = unit_payment_customer_ref }
-ggcode.generate "spring/unit_ref" { target = '@app', variables = unit_payment_product_ref }
+local projection_system = Projection
+    :from("system")
+    :with_rules {
+        -- Admin user can view and edit anything
+        Action:create "hasAuthority('realm:admin')";
+        Action:remove "hasAuthority('realm:admin')";
+        Action:remove "isAuthenticated()";
+        Action:delete "isAuthenticated()";
+        Action:update "isAuthenticated()";
+        Action:replace "isAuthenticated()";
+        Action:get "isAuthenticated()";
+        Action:select "isAuthenticated()";
+        Action:update "hasAuthority('realm:admin')";
+        Action:get "hasAuthority('realm:admin')";
+        Action:select "hasAuthority('realm:admin')";
+    }
+
+local projection_anonymous = Projection
+    :from("anonymous")
+    :with_rules {
+        -- All users can view
+        Action:get '';
+        Action:select '';
+    }
+
+local projection_profile = Projection
+    :from("profile")
+    :with_rules {
+        -- User can do anything with his profile entries
+        Auth:subject "customer_id";
+        Action:get "isAuthenticated()";
+        Action:select "isAuthenticated()";
+        Action:create "isAuthenticated()";
+        Action:remove "isAuthenticated()";
+        Action:delete "isAuthenticated()";
+        Action:update "isAuthenticated()";
+        Action:replace "isAuthenticated()";
+    }
+
+local projection_profile_payment = Projection
+    :from("profile")
+    :with_rules {
+        -- User can see but cannot update his payments directly
+        Auth:subject "customer_id";
+        Action:get "isAuthenticated()";
+        Action:select "isAuthenticated()";
+    }
+
+
+
+local projection_profile_order = Projection
+    :from("profile")
+    :with_rules {
+        -- User can submit an order and see order history
+        Auth:subject "customer_id";
+        Action:get "isAuthenticated()";
+        Action:select "isAuthenticated()";
+        Action:create "isAuthenticated()";
+    }
+
+-- Generate Project
+ggcode.generate "spring/project" { target = '@app', variables = project:unwrap() }
+
+-- Generate Modules
+ggcode.generate "spring/module_web" { target = '@app', variables = service_basket:unwrap() }
+ggcode.generate "spring/module_web" { target = '@app', variables = service_catalog:unwrap() }
+ggcode.generate "spring/module_web" { target = '@app', variables = service_customers:unwrap() }
+ggcode.generate "spring/module_web" { target = '@app', variables = service_payments:unwrap() }
+
+-- Generate Units
+ggcode.generate "spring/unit" { target = '@app', variables = unit_category:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_product:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_customer:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_basket_entry:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_favorite:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_basket_customer_ref:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_basket_product_ref:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_order:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_order_type:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_order_entry:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_order_status:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_payment:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_type:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_status:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_customer_ref:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_product_ref:unwrap() }
+
+-- Generate resources
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_customer)
+        :with_title("Customers")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_order_type)
+        :with_title("Dictionaries")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_order_status)
+        :with_title("Dictionaries")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_payment_type)
+        :with_title("Dictionaries")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_payment_status)
+        :with_title("Dictionaries")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_product)
+        :with_title("Products")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_category)
+        :with_title("Product Categories")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_payment)
+        :with_title("Payments")
+        :unwrap()
+}
+
+-- Personal resources
+
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_profile, unit_basket_entry)
+        :with_title("Basket")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_profile, unit_favorite)
+        :with_title("Favorites")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_profile_order, unit_order)
+        :with_title("Orders")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_profile_payment, unit_payment)
+        :with_title("Payments")
+        :unwrap()
+}
+
+-- Publicly accessible resources
+
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_anonymous, unit_product)
+        :with_title("Public")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_anonymous, unit_category)
+        :with_title("Public")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_anonymous, unit_order_type)
+        :with_title("Public")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_anonymous, unit_order_status)
+        :with_title("Public")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_anonymous, unit_payment_type)
+        :with_title("Public")
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_anonymous, unit_payment_status)
+        :with_title("Public")
+        :unwrap()
+}
