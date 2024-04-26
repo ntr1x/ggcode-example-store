@@ -3,6 +3,9 @@ local POM = require('spring/POM')
 local Project = require('spring/Project')
 local Module = require('spring/Module')
 local Profile = require('spring/Profile')
+local Exchange = require('spring/Exchange')
+local Topic = require('spring/exchange/Topic')
+local Listener = require('spring/exchange/Listener')
 local Unit = require('spring/Unit')
 local Projection = require('spring/Projection')
 local Resource = require('spring/Resource')
@@ -17,10 +20,14 @@ local Auth = require('spring/security/Auth')
 local pom = POM:from('com.example', 'application', {
     "common_api",
     "common_web",
+    "common_events",
     "service_catalog",
     "service_customers",
     "service_basket",
     "service_payments",
+    "service_events",
+    "gateway_payments",
+    "gateway_customers",
 })
 
 local project = Project:from('store', pom)
@@ -45,8 +52,17 @@ local service_payments = Module
     :from(project, 'service_payments')
     :with_profile('local', profile_local:copy():with_port(8083))
 
-local unit_category = Unit:from(service_catalog, "category")
-local unit_product = Unit:from(service_catalog, "product")
+    local service_events = Module
+    :from(project, 'service_events')
+    :with_profile('local', profile_local:copy():with_port(8084))
+
+local gateway_payments = Module
+    :from(project, 'gateway_payments')
+    :with_profile('local', profile_local:copy():with_port(8085))
+
+local gateway_customers = Module
+    :from(project, 'gateway_customers')
+    :with_profile('local', profile_local:copy():with_port(8086))
 
 local unit_category = Unit
     :from(service_catalog, "public.category")
@@ -64,11 +80,7 @@ local unit_product = Unit
         Prop:text 'description',
         Prop:decimal 'price',
         Prop:uuid 'category_id',
-        Ref:new {
-            name = 'category',
-            column = 'category_id',
-            unit = unit_category,
-        },
+        Ref:new { name = 'category', column = 'category_id', unit = unit_category, },
     }
 
 local unit_customer = Unit
@@ -80,7 +92,45 @@ local unit_customer = Unit
         Prop:text 'name',
     }
 
-    local unit_basket_customer_ref = Unit
+local unit_customer_verify_phone = Unit
+    :from(service_customers, "public.customer_verify_phone")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:uuid 'customer_id',
+        Prop:text 'phone',
+        Prop:int 'secret',
+        Prop:boolean 'is_confirmed',
+        Ref:new { name = 'customer', column = 'customer_id', unit = unit_customer },
+    }
+
+local unit_customer_verify_email = Unit
+    :from(service_customers, "public.customer_verify_email")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:uuid 'customer_id',
+        Prop:text 'email',
+        Prop:text 'secret',
+        Prop:boolean 'is_confirmed',
+        Ref:new { name = 'customer', column = 'customer_id', unit = unit_customer },
+    }
+
+local unit_event = Unit
+    :from(service_events, "public.event")
+    :with_columns {
+        PK:uuid 'id',
+        Prop:text 'topic',
+        Prop:text 'content_type',
+        Prop:text 'ce_type',
+        Prop:text 'ce_source',
+        Prop:text 'ce_specification',
+        Prop:text 'ce_id',
+        Prop:jsonb('payload')
+            :with_column_definition('jsonb')
+            :with_user_type('io.hypersistence.utils.hibernate.type.json.JsonBinaryType')
+            :with_lob(true),
+    }
+
+local unit_basket_customer_ref = Unit
     :from(service_basket, "public.customer")
     :with_columns {
         PK:uuid 'id',
@@ -104,16 +154,8 @@ local unit_basket_entry = Unit
         Prop:uuid 'customer_id',
         Prop:uuid 'product_id',
         Prop:int 'quantity',
-        Ref:new {
-            name = 'customer',
-            column = 'customer_id',
-            unit = unit_basket_customer_ref
-        },
-        Ref:new {
-            name = 'product',
-            column = 'product_id',
-            unit = unit_basket_product_ref
-        },
+        Ref:new { name = 'customer', column = 'customer_id', unit = unit_basket_customer_ref },
+        Ref:new { name = 'product', column = 'product_id', unit = unit_basket_product_ref },
     }
 
 local unit_favorite = Unit
@@ -122,16 +164,8 @@ local unit_favorite = Unit
         PK:uuid 'id',
         Prop:uuid 'customer_id',
         Prop:uuid 'product_id',
-        Ref:new {
-            name = 'customer',
-            column = 'customer_id',
-            unit = unit_basket_customer_ref
-        },
-        Ref:new {
-            name = 'product',
-            column = 'product_id',
-            unit = unit_basket_product_ref
-        },
+        Ref:new { name = 'customer', column = 'customer_id', unit = unit_basket_customer_ref },
+        Ref:new { name = 'product', column = 'product_id', unit = unit_basket_product_ref },
     }
 
 local unit_order = Unit:from(service_payments, "public.order")
@@ -151,21 +185,9 @@ unit_order:with_columns {
     Prop:int 'order_status_id',
     Prop:datetime 'created_at',
     Prop:datetime 'updated_at',
-    Ref:new {
-        name = 'customer',
-        column = 'customer_id',
-        unit = unit_payment_customer_ref
-    },
-    Ref:new {
-        name = 'order_type',
-        column = 'order_type_id',
-        unit = unit_order_type
-    },
-    Ref:new {
-        name = 'order_status',
-        column = 'order_status_id',
-        unit = unit_order_status
-    },
+    Ref:new { name = 'customer', column = 'customer_id', unit = unit_payment_customer_ref },
+    Ref:new { name = 'order_type', column = 'order_type_id', unit = unit_order_type },
+    Ref:new { name = 'order_status', column = 'order_status_id', unit = unit_order_status },
 }
 
 unit_order_type:with_columns {
@@ -179,16 +201,8 @@ unit_order_entry:with_columns {
     Prop:uuid 'product_id',
     Prop:uuid 'order_id',
     Prop:int 'quantity',
-    Ref:new {
-        name = 'order',
-        column = 'order_id',
-        unit = unit_order
-    },
-    Ref:new {
-        name = 'product',
-        column = 'product_id',
-        unit = unit_payment_product_ref
-    },
+    Ref:new { name = 'order', column = 'order_id', unit = unit_order },
+    Ref:new { name = 'product', column = 'product_id', unit = unit_payment_product_ref },
 }
 
 unit_order_status:with_columns {
@@ -199,22 +213,15 @@ unit_order_status:with_columns {
 
 unit_payment:with_columns {
     PK:uuid 'id',
+    Prop:uuid 'customer_id',
     Prop:uuid 'order_id',
     Prop:uuid 'payment_status_id',
     Prop:uuid 'payment_type_id',
     Prop:decimal 'value',
     Prop:datetime 'created_at',
     Prop:datetime 'updated_at',
-    Ref:new {
-        name = 'payment_status',
-        column = 'payment_status_id',
-        unit = unit_payment_status
-    },
-    Ref:new {
-        name = 'payment_type',
-        column = 'payment_type_id',
-        unit = unit_payment_type
-    },
+    Ref:new { name = 'payment_status', column = 'payment_status_id', unit = unit_payment_status },
+    Ref:new { name = 'payment_type', column = 'payment_type_id', unit = unit_payment_type },
 }
 
 unit_payment_type:with_columns {
@@ -242,27 +249,63 @@ unit_payment_product_ref:with_columns {
     Prop:decimal 'price',
 }
 
+local exchange_service_events = Exchange
+    :from(service_events)
+    :with_rules {
+        Topic:from('public_customers'),
+        Topic:from('public_category'),
+        Topic:from('public_product'),
+    }
+
+local exchange_service_catalog = Exchange
+    :from(service_catalog)
+    :with_rules {
+        Topic:from('public_category'),
+        Topic:from('public_product'),
+    }
+
+local exchange_service_payments = Exchange
+    :from(service_payments)
+    :with_rules {
+        Topic:from('public_order'),
+        Topic:from('public_payment'),
+    }
+
+local exchange_service_customers = Exchange
+    :from(service_customers)
+    :with_rules {
+        Topic:from('public_customers'),
+        Topic:from('verify_phone'),
+        Topic:from('verify_email'),
+        Topic:from('update_phone'),
+        Topic:from('update_email'),
+    }
+
+local exchange_gateway_payments = exchange_service_payments
+    :clone()
+    :with_module(gateway_payments)
+
+local exchange_gateway_customers = exchange_service_customers
+    :clone()
+    :with_module(gateway_customers)
+
 local projection_system = Projection
     :from("system")
     :with_rules {
-        -- Admin user can view and edit anything
-        Action:create "hasAuthority('realm:admin')";
-        Action:remove "hasAuthority('realm:admin')";
-        Action:remove "isAuthenticated()";
-        Action:delete "isAuthenticated()";
-        Action:update "isAuthenticated()";
-        Action:replace "isAuthenticated()";
-        Action:get "isAuthenticated()";
-        Action:select "isAuthenticated()";
-        Action:update "hasAuthority('realm:admin')";
         Action:get "hasAuthority('realm:admin')";
         Action:select "hasAuthority('realm:admin')";
+        Action:create("hasAuthority('realm:admin')"):with_rules {
+            Action.Override:from_value("id", "generatorService.randomUUID()");
+        };
+        Action:remove "hasAuthority('realm:admin')";
+        Action:delete "hasAuthority('realm:admin')";
+        Action:update "hasAuthority('realm:admin')";
+        Action:replace "hasAuthority('realm:admin')";
     }
 
 local projection_anonymous = Projection
     :from("anonymous")
     :with_rules {
-        -- All users can view
         Action:get '';
         Action:select '';
     }
@@ -270,15 +313,48 @@ local projection_anonymous = Projection
 local projection_profile = Projection
     :from("profile")
     :with_rules {
-        -- User can do anything with his profile entries
         Auth:subject "customer_id";
+        Projection.Filter:from_context "customer_id";
+        Projection.Override:from_context "customer_id";
         Action:get "isAuthenticated()";
         Action:select "isAuthenticated()";
-        Action:create "isAuthenticated()";
+        Action:create("isAuthenticated()"):with_rules {
+            Action.Override:from_value("id", "generatorService.randomUUID()");
+        };
         Action:remove "isAuthenticated()";
         Action:delete "isAuthenticated()";
         Action:update "isAuthenticated()";
         Action:replace "isAuthenticated()";
+    }
+
+local projection_profile_verify_phone = Projection
+    :from("profile")
+    :with_rules {
+        Auth:subject "customer_id";
+        Projection.Filter:from_context "customer_id";
+        Projection.Override:from_context "customer_id";
+        Action:get "isAuthenticated()";
+        Action:select "isAuthenticated()";
+        Action:create("isAuthenticated()"):with_rules {
+            Action.Override:from_value("id", "generatorService.randomUUID()");
+        };
+        Action:update "isAuthenticated()";
+        Action:delete "isAuthenticated()";
+    }
+
+local projection_profile_verify_email = Projection
+    :from("profile")
+    :with_rules {
+        Auth:subject "customer_id";
+        Projection.Filter:from_context "customer_id";
+        Projection.Override:from_context "customer_id";
+        Action:get "isAuthenticated()";
+        Action:select "isAuthenticated()";
+        Action:create("isAuthenticated()"):with_rules {
+            Action.Override:from_value("id", "generatorService.randomUUID()");
+        };
+        Action:update "isAuthenticated()";
+        Action:delete "isAuthenticated()";
     }
 
 local projection_profile_payment = Projection
@@ -286,20 +362,24 @@ local projection_profile_payment = Projection
     :with_rules {
         -- User can see but cannot update his payments directly
         Auth:subject "customer_id";
+        Projection.Filter:from_context "customer_id";
+        Projection.Override:from_context "customer_id";
         Action:get "isAuthenticated()";
         Action:select "isAuthenticated()";
     }
-
-
 
 local projection_profile_order = Projection
     :from("profile")
     :with_rules {
         -- User can submit an order and see order history
         Auth:subject "customer_id";
+        Projection.Filter:from_context "customer_id";
+        Projection.Override:from_context "customer_id";
         Action:get "isAuthenticated()";
         Action:select "isAuthenticated()";
-        Action:create "isAuthenticated()";
+        Action:create("isAuthenticated()"):with_rules {
+            Action.Override:from_value("id", "generatorService.randomUUID()");
+        };
     }
 
 -- Generate Project
@@ -310,11 +390,24 @@ ggcode.generate "spring/module_web" { target = '@app', variables = service_baske
 ggcode.generate "spring/module_web" { target = '@app', variables = service_catalog:unwrap() }
 ggcode.generate "spring/module_web" { target = '@app', variables = service_customers:unwrap() }
 ggcode.generate "spring/module_web" { target = '@app', variables = service_payments:unwrap() }
+ggcode.generate "spring/module_web" { target = '@app', variables = service_events:unwrap() }
+ggcode.generate "spring/module_web" { target = '@app', variables = gateway_customers:unwrap() }
+ggcode.generate "spring/module_web" { target = '@app', variables = gateway_payments:unwrap() }
+
+-- Generate Exchanges
+ggcode.generate "spring/exchange" { target = '@app', variables = exchange_service_catalog:unwrap() }
+ggcode.generate "spring/exchange" { target = '@app', variables = exchange_service_payments:unwrap() }
+ggcode.generate "spring/exchange" { target = '@app', variables = exchange_service_customers:unwrap() }
+ggcode.generate "spring/exchange" { target = '@app', variables = exchange_gateway_payments:unwrap() }
+ggcode.generate "spring/exchange" { target = '@app', variables = exchange_gateway_customers:unwrap() }
+ggcode.generate "spring/exchange" { target = '@app', variables = exchange_service_events:unwrap() }
 
 -- Generate Units
 ggcode.generate "spring/unit" { target = '@app', variables = unit_category:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_product:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_customer:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_customer_verify_email:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_customer_verify_phone:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_basket_entry:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_favorite:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_basket_customer_ref:unwrap() }
@@ -328,13 +421,68 @@ ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_type:u
 ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_status:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_customer_ref:unwrap() }
 ggcode.generate "spring/unit" { target = '@app', variables = unit_payment_product_ref:unwrap() }
+ggcode.generate "spring/unit" { target = '@app', variables = unit_event:unwrap() }
 
--- Generate resources
+-- Generate system resources
+
 ggcode.generate "spring/resource" {
     target = '@app',
     variables = Resource
         :from(projection_system, unit_customer)
         :with_title("Customers")
+        :with_expanded_signals('public_customer')
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_profile_verify_phone, unit_customer_verify_phone)
+        :with_title("Customer Profile")
+        :with_rules({
+            Resource.Signal:create('verify_phone', '#result.created');
+            Resource.Signal:update('update_email', '#result.updated');
+            Resource.View:kafka({ "secret", "is_confirmed" });
+            Resource.View:update({ "secret" });
+            Resource.Request:create(unit_customer_verify_phone):with_rules {
+                Resource.Override:from_expression('secret', '@generatorService.randomInt(1000, 9999)');
+                Resource.Override:from_value('is_confirmed', 'false');
+            };
+            Resource.Request:select(unit_customer_verify_phone):with_rules {
+                Resource.Override:from_hidden('secret');
+            };
+            Resource.Request:update(unit_customer_verify_phone):with_rules {
+                Resource.Override:from_hidden('id');
+                Resource.Filter:from_value('is_confirmed', 'false');
+                Resource.Filter:from_request('phone');
+                Resource.Filter:from_request('secret');
+            };
+        })
+        :unwrap()
+}
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_profile_verify_email, unit_customer_verify_email)
+        :with_title("Customer Profile")
+        :with_rules({
+            Resource.Signal:create('verify_email', '#result.created');
+            Resource.Signal:update('update_email', '#result.updated');
+            Resource.View:kafka({ "secret", "is_confirmed" });
+            Resource.View:update({ "secret" });
+            Resource.Request:create(unit_customer_verify_email):with_rules {
+                Resource.Override:from_expression('secret', "@generatorService.randomString(12)");
+                Resource.Override:from_value('is_confirmed', 'false');
+            };
+            Resource.Request:select(unit_customer_verify_email):with_rules {
+                Resource.Override:from_hidden('secret');
+            };
+            Resource.Request:update(unit_customer_verify_email):with_rules {
+                Resource.Override:from_hidden('id');
+                Resource.Filter:from_value('is_confirmed', 'false');
+                Resource.Filter:from_request('email');
+                Resource.Filter:from_request('secret');
+            };
+        })
         :unwrap()
 }
 ggcode.generate "spring/resource" {
@@ -370,6 +518,7 @@ ggcode.generate "spring/resource" {
     variables = Resource
         :from(projection_system, unit_product)
         :with_title("Products")
+        :with_expanded_signals('public_product')
         :unwrap()
 }
 ggcode.generate "spring/resource" {
@@ -377,6 +526,7 @@ ggcode.generate "spring/resource" {
     variables = Resource
         :from(projection_system, unit_category)
         :with_title("Product Categories")
+        :with_expanded_signals('public_category')
         :unwrap()
 }
 ggcode.generate "spring/resource" {
@@ -386,8 +536,15 @@ ggcode.generate "spring/resource" {
         :with_title("Payments")
         :unwrap()
 }
+ggcode.generate "spring/resource" {
+    target = '@app',
+    variables = Resource
+        :from(projection_system, unit_event)
+        :with_title("Events")
+        :unwrap()
+}
 
--- Personal resources
+-- Generate personal resources
 
 ggcode.generate "spring/resource" {
     target = '@app',
@@ -460,5 +617,58 @@ ggcode.generate "spring/resource" {
     variables = Resource
         :from(projection_anonymous, unit_payment_status)
         :with_title("Public")
+        :unwrap()
+}
+
+-- Generate listeners
+
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(gateway_payments, "public_payment")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(gateway_payments, "public_order")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(gateway_customers, "public_customer")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(gateway_customers, "verify_phone")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(gateway_customers, "verify_email")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(service_customers, "update_phone")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(service_customers, "update_email")
+        :unwrap()
+}
+ggcode.generate "spring/listener" {
+    target = '@app',
+    variables = Listener
+        :from(service_events, "public_event")
+        :with_topic_pattern("public_.*")
+        :with_batch_flag(true)
         :unwrap()
 }
