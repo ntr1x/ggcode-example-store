@@ -19,6 +19,7 @@ Upload your SSH Key to a GitHub. It is usually located in `~/.ssh/id_rsa.pub` on
 Add this routes to your hosts file:
 
 ```
+127.0.0.1   api.local.example.com
 127.0.0.1   swagger-ui.local.example.com
 127.0.0.1   kafka-ui.local.example.com
 127.0.0.1   pgadmin.local.example.com
@@ -35,30 +36,36 @@ Make sure that ports `80`, `5432` and `9092` are free on your system.
 
 ```bash
 # Clone
-git clone https://github.com/ntr1x/ggcode-example-store
+$ git clone https://github.com/ntr1x/ggcode-example-store
 
 # Go to the project root directory
-cd ggcode-example-store
+$ cd ggcode-example-store
 
 # Go to the project root directory
-ggcode install
+$ ggcode install
 
 # Generate compose manifests
-ggcode run @/generate-compose
+$ ggcode run @/generate-compose
 
 # Generate spring boot applicaiton
-ggcode run @/generate-spring
+$ ggcode run @/generate-spring
+
+# Generate liquibase migrations
+$ ggcode run @/generate-migrate
+
+# Generate admin application
+$ ggcode run @/generate-admin
 ```
 
 ### Launching
 
 #### Step 1
 
-Launch required containers:
+Export PROJECT_ROOT environment variable:
 
 ```bash
-cd app
-docker compose --profile env up -d
+# Just to simplify further instructions:
+$ export PROJECT_ROOT=$(pwd)
 ```
 
 #### Step 2
@@ -66,28 +73,56 @@ docker compose --profile env up -d
 Build the application:
 
 ```bash
-cd store
-mvn clean install
+$ cd $PROJECT_ROOT/store_backend
+$ make build/assembly_web
 ```
 
 #### Step 3
 
-Open the application in your IDE and launch these applications:
+Launch containers:
 
-```
-com.example.service.basket.ServiceBasketApplicationLocal
-com.example.service.catalog.ServiceCatalogApplicationLocal
-com.example.service.customers.ServiceCustomersApplicationLocal
-com.example.service.payments.ServicePaymentsApplicationLocal
+```bash
+$ cd $PROJECT_ROOT/store_starter
+$ docker compose --profile env --profile app up -d
 ```
 
 #### Step 4
+
+Migrate database:
+
+```bash
+$ cd $PROJECT_ROOT/store_migrate
+$ make migrate/changelog/liquibase_host
+```
+
+#### Step 5
+
+Initialize keycloak installation:
+
+```bash
+# Launch one-off container to initialize keycloak
+$ cd $PROJECT_ROOT/store_compose
+$ docker compose run env_kcadm
+```
+
+#### Step 7
+
+Build and launch admin application:
+
+```bash
+$ cd $PROJECT_ROOT/store_admin
+$ yarn
+$ yarn dev
+```
+
+#### Step 6
 
 Open in your browser:
 
 - http://swagger-ui.local.example.com/
 - http://kafka-ui.local.example.com/
 - http://pgadmin.local.example.com/
+- http://localhost:5173/
 
 ## Futher Development
 
