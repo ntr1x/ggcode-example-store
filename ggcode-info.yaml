@@ -4,13 +4,21 @@ actions:
   path: actions/generate-compose.luau
 - name: generate-spring
   path: actions/generate-spring.luau
+- name: generate-migrate
+  path: actions/generate-migrate.luau
+- name: generate-admin
+  path: actions/generate-admin.luau
 repositories:
 - name: core
   uri: git@github.com:ntr1x/ggcode-repo-core.git
 - name: compose
   uri: git@github.com:ntr1x/ggcode-repo-compose.git
+- name: migrate
+  uri: git@github.com:ntr1x/ggcode-repo-migrate.git
 - name: spring
   uri: git@github.com:ntr1x/ggcode-repo-spring.git
+- name: vue
+  uri: git@github.com:ntr1x/ggcode-repo-vue.git
 targets:
 - name: '@app'
   path: 'app'
