@@ -115,7 +115,7 @@ $ yarn
 $ yarn dev
 ```
 
-#### Step 6
+#### Step 8
 
 Open in your browser:
 
