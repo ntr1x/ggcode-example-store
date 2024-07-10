@@ -8,6 +8,10 @@ local requests = {}
 requests.request_customer_select = Request
   :from_post(remotes.remote_customers, '/system/public_customer/select')
   :with_body(Meta:table {})
+  :with_query(Meta:table {
+    sort = 'fullName',
+    size = 50
+  })
 
 requests.request_customer_get = Request
   :from_get(remotes.remote_customers, '/system/public_customer/i/${route.params.customerId}')
@@ -15,6 +19,9 @@ requests.request_customer_get = Request
 requests.request_agent_select = Request
   :from_post(remotes.remote_customers, '/system/public_agent/select')
   :with_body(Meta:table {})
+  :with_query(Meta:table {
+    size = 50
+  })
 
 requests.request_agent_get = Request
   :from_get(remotes.remote_customers, '/system/public_agent/i/${route.params.agentId}')
@@ -32,7 +39,7 @@ requests.request_product_select = Request
   :with_body(Meta:table {})
 
 requests.request_product_get = Request
-  :from_get(remotes.remote_payments, '/system/public_product/i/${route.params.productId}')
+  :from_get(remotes.remote_products, '/system/public_product/i/${route.params.productId}')
 
 requests.request_item_select = Request
   :from_post(remotes.remote_products, '/system/public_item/select')
@@ -49,6 +56,10 @@ requests.request_promotion_select = Request
 requests.request_order_select = Request
   :from_post(remotes.remote_payments, '/system/public_order/select')
   :with_body(Meta:table {})
+  :with_query(Meta:table {
+    sort = 'id,asc',
+    size = 50
+  })
 
 requests.request_order_get = Request
   :from_get(remotes.remote_payments, '/system/public_order/i/${route.params.orderId}')
@@ -56,6 +67,10 @@ requests.request_order_get = Request
 requests.request_payment_select = Request
   :from_post(remotes.remote_payments, '/system/public_payment/select')
   :with_body(Meta:table {})
+  :with_query(Meta:table {
+    sort = 'id,asc',
+    size = 50
+  })
 
 requests.request_source_type_select = Request
   :from_post(remotes.remote_payments, '/system/public_source_type/select')
@@ -69,7 +84,8 @@ requests.request_order_status_select = Request
   :from_post(remotes.remote_payments, '/system/public_order_status/select')
   :with_body(Meta:table {})
   :with_query(Meta:table {
-    sort = 'id,asc'
+    sort = 'id,asc',
+    size = 50
   })
 
 requests.request_payment_type_select = Request
@@ -92,7 +108,8 @@ requests.request_event_select = Request
   :from_post(remotes.remote_events, '/system/public_event/select')
   :with_body(Meta:table {})
   :with_query(Meta:table {
-    sort = 'created_at,desc'
+    sort = 'createdAt,desc',
+    size = 50
   })
 
 requests.request_event_type_select = Request
@@ -111,7 +128,8 @@ requests.request_dispatch_select = Request
   :from_post(remotes.remote_events, '/system/public_dispatch/select')
   :with_body(Meta:table {})
   :with_query(Meta:table {
-    sort = 'created_at,desc'
+    sort = 'createdAt,desc',
+    size = 50
   })
 
 requests.request_dispatch_type_select = Request

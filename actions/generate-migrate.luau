@@ -134,8 +134,8 @@ local liquibase = Liquibase:from(changelog, 'liquibase', datasource_app)
 local liquibase_local = Liquibase:from(changelog, 'liquibase_local', datasource_app_local)
 local liquibase_host = Liquibase:from(changelog, 'liquibase_host', datasource_app_host)
 
-ggcode.generate "migrate/project" { target = '@app', variables = project:unwrap() }
-ggcode.generate "migrate/changelog" { target = '@app', variables = changelog:unwrap() }
-ggcode.generate "migrate/liquibase" { target = '@app', variables = liquibase:unwrap() }
-ggcode.generate "migrate/liquibase" { target = '@app', variables = liquibase_local:unwrap() }
-ggcode.generate "migrate/liquibase" { target = '@app', variables = liquibase_host:unwrap() }
+ggcode.generate "migrate/project" { target = '@store', variables = project:unwrap() }
+ggcode.generate "migrate/changelog" { target = '@store', variables = changelog:unwrap() }
+ggcode.generate "migrate/liquibase" { target = '@store', variables = liquibase:unwrap() }
+ggcode.generate "migrate/liquibase" { target = '@store', variables = liquibase_local:unwrap() }
+ggcode.generate "migrate/liquibase" { target = '@store', variables = liquibase_host:unwrap() }

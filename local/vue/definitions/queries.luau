@@ -45,6 +45,10 @@ queries.query_order_select = Query
     Query.Filter:from('region_id', 'regionId'),
     Query.Sorter:from('order_type_id', 'orderType'),
     Query.Sorter:from('order_status_id', 'orderStatus'),
+    Query.Sorter:from('id', 'id'),
+    Query.Sorter:from('customer_id', 'customerId'),
+    Query.Sorter:from('created_at', 'createdAt'),
+    Query.Sorter:from('updated_at', 'updatedAt'),
   }
 
 queries.query_promotion_select = Query
@@ -139,6 +143,7 @@ queries.query_subscription_select = Query
     Query.Filter:from('type_id', 'typeId'),
     Query.Sorter:from('id', 'id'),
     Query.Sorter:from('created_at', 'createdAt'),
+    Query.Sorter:from('type_id', 'typeId'),
   }
 
 queries.query_subscription_type_select = Query

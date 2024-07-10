@@ -2,6 +2,7 @@ local Toolbar = require('vue/Toolbar')
 
 local queries = require('vue/definitions/queries')
 local selects = require('vue/definitions/selects')
+local searches = require('vue/definitions/searches')
 
 local toolbars = {}
 
@@ -40,6 +41,7 @@ toolbars.toolbar_promotion_target = Toolbar
 toolbars.toolbar_order = Toolbar
   :from_query(queries.query_order_select, 'orders')
   :with_rules {
+    Toolbar.Filter:from_search(searches.search_customer_id),
     Toolbar.Filter:from_select(selects.select_source_type),
     Toolbar.Filter:from_select(selects.select_order_type),
     Toolbar.Filter:from_select(selects.select_order_status),
@@ -77,6 +79,7 @@ toolbars.toolbar_event = Toolbar
 toolbars.toolbar_subscription = Toolbar
   :from_query(queries.query_subscription_select, 'subscriptions')
   :with_rules {
+    Toolbar.Filter:from_search(searches.search_customer_id, 'customer_id'),
     Toolbar.Filter:from_select(selects.select_subscription_type, 'type_id'),
     Toolbar.Sorter:from('id'),
     Toolbar.Sorter:from('createdAt'),
@@ -86,6 +89,7 @@ toolbars.toolbar_subscription = Toolbar
 toolbars.toolbar_dispatch = Toolbar
   :from_query(queries.query_dispatch_select, 'dispatches')
   :with_rules {
+    Toolbar.Filter:from_search(searches.search_customer_id, 'customer_id'),
     Toolbar.Filter:from_select(selects.select_dispatch_type, 'type_id'),
     Toolbar.Filter:from_select(selects.select_dispatch_status, 'status_id'),
     Toolbar.Sorter:from('id'),

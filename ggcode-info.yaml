@@ -22,3 +22,5 @@ repositories:
 targets:
 - name: '@app'
   path: 'app'
+- name: '@store'
+  path: ../../ggcode-generated/ggcode-generated-store

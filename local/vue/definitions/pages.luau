@@ -5,8 +5,17 @@ local queries = require('vue/definitions/queries')
 local fieldsets = require('vue/definitions/fieldsets')
 local toolbars = require('vue/definitions/toolbars')
 local grids = require('vue/definitions/grids')
+local widgets = require('vue/definitions/widgets')
 
 local pages = {}
+
+pages.page_dashboard = Page
+  :from(projects.project, 'dashboard')
+  :with_rules {
+    Page.Heading:from('dashboard'),
+    Page.Section:from_widget(widgets.widget_personal_profile),
+    Page.Section:from_widget(widgets.widget_dispatch_message),
+  }
 
 pages.page_customer_list = Page
   :from(projects.project, 'customers')
