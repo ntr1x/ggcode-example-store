@@ -156,6 +156,33 @@ queries.query_subscription_type_select = Query
     Query.Sorter:from('description', 'description'),
   }
 
+queries.query_template_select = Query
+  :from_request(requests.request_template_select, 'template_select')
+  :with_rules {
+    Query.Filter:from('type_id', 'typeId'),
+    Query.Filter:from('shape_id', 'shapeId'),
+    Query.Sorter:from('id', 'id'),
+    Query.Sorter:from('name', 'name'),
+    Query.Sorter:from('type_id', 'typeId'),
+    Query.Sorter:from('shape_id', 'shapeId'),
+  }
+
+queries.query_template_type_select = Query
+  :from_request(requests.request_template_type_select, 'template_type_select')
+  :with_rules {
+    Query.Sorter:from('id', 'id'),
+    Query.Sorter:from('name', 'name'),
+    Query.Sorter:from('description', 'description'),
+  }
+
+queries.query_template_shape_select = Query
+  :from_request(requests.request_template_shape_select, 'template_shape_select')
+  :with_rules {
+    Query.Sorter:from('id', 'id'),
+    Query.Sorter:from('name', 'name'),
+    Query.Sorter:from('description', 'description'),
+  }
+
 queries.query_promotion_target_select = Query
   :from_request(requests.request_promotion_target_select, 'promotion_target_select')
   :with_rules {

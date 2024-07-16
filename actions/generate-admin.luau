@@ -16,6 +16,8 @@ local pages = require('vue/definitions/pages')
 local routers = require('vue/definitions/routers')
 local menus = require('vue/definitions/menus')
 local widgets = require('vue/definitions/widgets')
+local dialogs = require('vue/definitions/dialogs')
+local actions = require('vue/definitions/actions')
 
 -- Generate Projects
 for _, project in projects do
@@ -85,4 +87,14 @@ end
 -- Generate Widgets
 for _, widget in widgets do
   ggcode.generate "vue/widget" { target = '@store', variables = widget:unwrap() }
+end
+
+-- Generate Dialogs
+for _, dialog in dialogs do
+  ggcode.generate "vue/dialog" { target = '@store', variables = dialog:unwrap() }
+end
+
+-- Generate Actions
+for _, action in actions do
+  ggcode.generate "vue/action" { target = '@store', variables = action:unwrap() }
 end

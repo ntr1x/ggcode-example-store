@@ -279,4 +279,32 @@ grids.grid_subscription_type = Grid
     Grid.Column:from_path('description', 'description'),
   }
 
+grids.grid_template = Grid
+  :from_query(queries.query_template_select, 'templates')
+  :with_rules {
+    Grid.Column
+      :from_symbol('id', symbols.symbol_id, 'id')
+      :with_variable('label', "'REF'")
+      :with_variable('route', '`/admin/templates/${slotProps.data.id}`'),
+    Grid.Column:from_symbol('type', symbols.symbol_template_type, 'type'),
+    Grid.Column:from_symbol('shape', symbols.symbol_template_shape, 'shape'),
+    Grid.Column:from_path('name', 'name'),
+  }
+
+grids.grid_template_type = Grid
+  :from_query(queries.query_template_type_select, 'template_types')
+  :with_rules {
+    Grid.Column:from_symbol('id', symbols.symbol_id, 'id'),
+    Grid.Column:from_path('name', 'name'),
+    Grid.Column:from_path('description', 'description'),
+  }
+
+grids.grid_template_shape = Grid
+  :from_query(queries.query_template_shape_select, 'template_shapes')
+  :with_rules {
+    Grid.Column:from_symbol('id', symbols.symbol_id, 'id'),
+    Grid.Column:from_path('name', 'name'),
+    Grid.Column:from_path('description', 'description'),
+  }
+
 return grids

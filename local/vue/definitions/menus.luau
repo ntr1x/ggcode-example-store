@@ -36,6 +36,7 @@ menus.menu_notifications = Menu
     Menu.Item:from_route(routers.router_admin, routes.route_dispatch_list):with_font_icon('pi pi-bell'),
     Menu.Item:from_route(routers.router_admin, routes.route_subscription_list):with_font_icon('pi pi-directions'),
     Menu.Item:from_route(routers.router_admin, routes.route_event_list):with_font_icon('pi pi-bolt'),
+    Menu.Item:from_route(routers.router_admin, routes.route_template_list):with_font_icon('pi pi-file'),
   }
 
 menus.menu_catalogue = Menu
@@ -66,6 +67,8 @@ menus.menu_dictionaries = Menu
     Menu.Item:from_route(routers.router_admin, routes.route_event_sources):with_font_icon('pi pi-database'),
     Menu.Item:from_route(routers.router_admin, routes.route_event_topics):with_font_icon('pi pi-database'),
     Menu.Item:from_route(routers.router_admin, routes.route_event_types):with_font_icon('pi pi-database'),
+    Menu.Item:from_route(routers.router_admin, routes.route_template_type_list):with_font_icon('pi pi-database'),
+    Menu.Item:from_route(routers.router_admin, routes.route_template_shape_list):with_font_icon('pi pi-database'),
   }
 
 return menus

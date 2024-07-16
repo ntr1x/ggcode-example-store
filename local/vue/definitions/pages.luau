@@ -14,7 +14,9 @@ pages.page_dashboard = Page
   :with_rules {
     Page.Heading:from('dashboard'),
     Page.Section:from_widget(widgets.widget_personal_profile),
-    Page.Section:from_widget(widgets.widget_dispatch_message),
+    Page.Section
+      :from_widget(widgets.widget_dispatch_message)
+      :with_roles({ 'realm:developer', 'realm:admin', 'realm:support' }),
   }
 
 pages.page_customer_list = Page
@@ -307,6 +309,31 @@ pages.page_event_sources = Page
     Page.Heading:from('event_sources'),
     Page.Section:from_grid(grids.grid_event_source),
     queries.query_event_source_select,
+  }
+
+pages.page_template_list = Page
+  :from(projects.project, 'templates')
+  :with_rules {
+    Page.Heading:from('templates'),
+    Page.Section:from_toolbar(toolbars.toolbar_template),
+    Page.Section:from_grid(grids.grid_template),
+    queries.query_template_select,
+  }
+
+pages.page_template_type_list = Page
+  :from(projects.project, 'template_types')
+  :with_rules {
+    Page.Heading:from('template_types'),
+    Page.Section:from_grid(grids.grid_template_type),
+    queries.query_template_type_select,
+  }
+
+pages.page_template_shape_list = Page
+  :from(projects.project, 'template_shapes')
+  :with_rules {
+    Page.Heading:from('template_shapes'),
+    Page.Section:from_grid(grids.grid_template_shape),
+    queries.query_template_shape_select,
   }
 
 return pages

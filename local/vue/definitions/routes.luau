@@ -126,4 +126,16 @@ routes.route_dispatch_type_list = Router.Route
   :from_page(pages.page_dispatch_type_list)
   :with_roles({'realm:developer', 'realm:admin'})
 
+routes.route_template_list = Router.Route
+  :from_page(pages.page_template_list)
+  :with_roles({'realm:developer', 'realm:admin', 'realm:support'})
+
+routes.route_template_shape_list = Router.Route
+  :from_page(pages.page_template_shape_list)
+  :with_roles({'realm:developer', 'realm:admin'})
+
+routes.route_template_type_list = Router.Route
+  :from_page(pages.page_template_type_list)
+  :with_roles({'realm:developer', 'realm:admin'})
+
 return routes

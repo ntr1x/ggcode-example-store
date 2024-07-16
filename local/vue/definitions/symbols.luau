@@ -160,4 +160,31 @@ symbols.symbol_dispatch_type = Symbol
     CRITERIA = 'rounded bg-red-800 text-white',
   })
 
+symbols.symbol_template_shape = Symbol
+  :from(projects.project, 'template_shape')
+  :with_label('props.value.description')
+  :with_decoration('decorations[props.value.name]')
+  :with_record('decorations', {
+    TEXT = 'rounded bg-blue-800 text-white',
+    EMAIL = 'rounded bg-orange-800 text-white',
+  })
+
+symbols.symbol_template_type = Symbol
+  :from(projects.project, 'template_type')
+  :with_label('props.value.description')
+  :with_decoration('decorations[props.value.name]')
+  :with_record('decorations', {
+    ['message:info'] = 'rounded bg-red-800 text-white',
+    ['security:signin'] = 'rounded bg-orange-800 text-white',
+    ['security:signup'] = 'rounded bg-orange-800 text-white',
+    ['profile:updated'] = 'rounded bg-green-800 text-white',
+    ['order:created'] = 'rounded bg-blue-800 text-white',
+    ['order:packaged'] = 'rounded bg-blue-800 text-white',
+    ['order:paid'] = 'rounded bg-blue-800 text-white',
+    ['order:failed'] = 'rounded bg-blue-800 text-white',
+    ['order:canceled'] = 'rounded bg-blue-800 text-white',
+    ['order:ready'] = 'rounded bg-blue-800 text-white',
+    ['order:complete'] = 'rounded bg-blue-800 text-white',
+  })
+
 return symbols

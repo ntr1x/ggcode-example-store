@@ -3,6 +3,7 @@ local Toolbar = require('vue/Toolbar')
 local queries = require('vue/definitions/queries')
 local selects = require('vue/definitions/selects')
 local searches = require('vue/definitions/searches')
+local actions = require('vue/definitions/actions')
 
 local toolbars = {}
 
@@ -47,11 +48,11 @@ toolbars.toolbar_order = Toolbar
     Toolbar.Filter:from_select(selects.select_order_status),
     Toolbar.Filter:from_select(selects.select_region_id),
     Toolbar.Sorter:from('id'),
-    Toolbar.Sorter:from('customerId'),
-    Toolbar.Sorter:from('orderTypeId'),
-    Toolbar.Sorter:from('orderStatusId'),
-    Toolbar.Sorter:from('createdAt'),
-    Toolbar.Sorter:from('updatedAt'),
+    Toolbar.Sorter:from('customer_id'),
+    Toolbar.Sorter:from('order_type_id'),
+    Toolbar.Sorter:from('order_status_id'),
+    Toolbar.Sorter:from('created_at'),
+    Toolbar.Sorter:from('updated_at'),
   }
 
 toolbars.toolbar_payment = Toolbar
@@ -70,10 +71,10 @@ toolbars.toolbar_event = Toolbar
     Toolbar.Filter:from_select(selects.select_event_topic),
     Toolbar.Filter:from_select(selects.select_event_type),
     Toolbar.Sorter:from('id'),
-    Toolbar.Sorter:from('ceSource'),
-    Toolbar.Sorter:from('ceType'),
+    Toolbar.Sorter:from('ce_source'),
+    Toolbar.Sorter:from('ce_type'),
     Toolbar.Sorter:from('topic'),
-    Toolbar.Sorter:from('createdAt'),
+    Toolbar.Sorter:from('created_at'),
   }
 
 toolbars.toolbar_subscription = Toolbar
@@ -82,8 +83,8 @@ toolbars.toolbar_subscription = Toolbar
     Toolbar.Filter:from_search(searches.search_customer_id, 'customer_id'),
     Toolbar.Filter:from_select(selects.select_subscription_type, 'type_id'),
     Toolbar.Sorter:from('id'),
-    Toolbar.Sorter:from('createdAt'),
-    Toolbar.Sorter:from('typeId'),
+    Toolbar.Sorter:from('created_at'),
+    Toolbar.Sorter:from('type_id'),
   }
 
 toolbars.toolbar_dispatch = Toolbar
@@ -93,12 +94,29 @@ toolbars.toolbar_dispatch = Toolbar
     Toolbar.Filter:from_select(selects.select_dispatch_type, 'type_id'),
     Toolbar.Filter:from_select(selects.select_dispatch_status, 'status_id'),
     Toolbar.Sorter:from('id'),
-    Toolbar.Sorter:from('createdAt'),
-    Toolbar.Sorter:from('updatedAt'),
-    Toolbar.Sorter:from('typeId'),
-    Toolbar.Sorter:from('statusId'),
-    Toolbar.Action:from('remove_selected', 'danger'):with_selection(true),
-    Toolbar.Action:from('create_dispatch'),
+    Toolbar.Sorter:from('created_at'),
+    Toolbar.Sorter:from('updated_at'),
+    Toolbar.Sorter:from('type_id'),
+    Toolbar.Sorter:from('status_id'),
+    Toolbar.Column:from('id', 'string'),
+    Toolbar.Handle
+      :from(actions.action_dispatch_message_remove_selected, 'remove_selected')
+      :with_severity('danger')
+      :with_selection(true)
+      :with_expression('selection.value.map(item => ({ id: item.id }))'),
+    Toolbar.Handle
+      :from(actions.action_dispatch_message_open_dialog,'create_dispatch'),
+  }
+
+toolbars.toolbar_template = Toolbar
+  :from_query(queries.query_template_select, 'templates')
+  :with_rules {
+    Toolbar.Filter:from_select(selects.select_template_type, 'type_id'),
+    Toolbar.Filter:from_select(selects.select_template_shape, 'shape_id'),
+    Toolbar.Sorter:from('id'),
+    Toolbar.Sorter:from('name'),
+    Toolbar.Sorter:from('type_id'),
+    Toolbar.Sorter:from('shape_id'),
   }
 
 return toolbars

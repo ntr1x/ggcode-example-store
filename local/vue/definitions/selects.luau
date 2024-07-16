@@ -74,4 +74,12 @@ selects.select_subscription_type = Select
   :from_request(requests.request_subscription_type_select, 'subscription_type')
   :with_field_description('description')
 
+selects.select_template_type = Select
+  :from_request(requests.request_template_type_select, 'template_type')
+  :with_field_description('description')
+
+selects.select_template_shape = Select
+  :from_request(requests.request_template_shape_select, 'template_shape')
+  :with_field_description('description')
+
 return selects
